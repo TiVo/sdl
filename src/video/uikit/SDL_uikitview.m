@@ -138,6 +138,9 @@
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
+    // TiVo must disable for APPLE devices as inexplicable crashes in
+    // Stage.hx result
+#if (!defined APPLETV)
     for (UITouch *touch in touches) {
         float pressure = [self pressureForTouch:touch];
 
@@ -158,10 +161,14 @@
         SDL_SendTouch(touchId, (SDL_FingerID)((size_t)touch),
                       SDL_TRUE, locationInView.x, locationInView.y, pressure);
     }
+#endif
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
+    // TiVo must disable for APPLE devices as inexplicable crashes in
+    // Stage.hx result
+#if (!defined APPLETV)
     for (UITouch *touch in touches) {
         float pressure = [self pressureForTouch:touch];
 
@@ -176,15 +183,24 @@
         SDL_SendTouch(touchId, (SDL_FingerID)((size_t)touch),
                       SDL_FALSE, locationInView.x, locationInView.y, pressure);
     }
+#endif
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
 {
+    // TiVo must disable for APPLE devices as inexplicable crashes in
+    // Stage.hx result
+#if (!defined APPLETV)
     [self touchesEnded:touches withEvent:event];
+#endif
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
+    // TiVo must disable for APPLE devices as inexplicable crashes in
+    // Stage.hx result
+#if (!defined APPLETV)
+
     for (UITouch *touch in touches) {
         float pressure = [self pressureForTouch:touch];
 
@@ -199,6 +215,7 @@
         SDL_SendTouchMotion(touchId, (SDL_FingerID)((size_t)touch),
                             locationInView.x, locationInView.y, pressure);
     }
+#endif
 }
 
 #if TARGET_OS_TV || defined(__IPHONE_9_1)

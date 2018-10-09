@@ -113,7 +113,11 @@
 
         CAEAGLLayer *eaglLayer = (CAEAGLLayer *)self.layer;
 
-        eaglLayer.opaque = YES;
+        /**
+         * TiVo -- do not allow the layer to be opaque as this
+         * prevents video from showing through
+         **/
+        eaglLayer.opaque = NO;
         eaglLayer.drawableProperties = @{
             kEAGLDrawablePropertyRetainedBacking:@(retained),
             kEAGLDrawablePropertyColorFormat:colorFormat
@@ -198,6 +202,11 @@
     }
 
     return self;
+}
+
+- (BOOL)canBecomeFirstResponder
+{
+    return YES;
 }
 
 - (GLuint)drawableRenderbuffer
