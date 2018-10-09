@@ -229,10 +229,12 @@ JNIEXPORT jint JNICALL Java_org_libsdl_app_SDLActivity_nativeRemoveJoystick(
 /* Surface Created */
 JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_onNativeSurfaceChanged(JNIEnv* env, jclass jcls)
 {
+    __android_log_print(ANDROID_LOG_VERBOSE, "SDL", "onNativeSurfaceChanged().");    
     SDL_WindowData *data;
     SDL_VideoDevice *_this;
 
     if (Android_Window == NULL || Android_Window->driverdata == NULL ) {
+        __android_log_print(ANDROID_LOG_VERBOSE, "SDL", "onNativeSurfaceChanged() -- early return for NULL window or NULL driverdata.");        
         return;
     }
     
@@ -241,6 +243,7 @@ JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_onNativeSurfaceChanged(JN
     
     /* If the surface has been previously destroyed by onNativeSurfaceDestroyed, recreate it here */
     if (data->egl_surface == EGL_NO_SURFACE) {
+        __android_log_print(ANDROID_LOG_VERBOSE, "SDL", "onNativeSurfaceChanged() -- recreating window.");
         if(data->native_window) {
             ANativeWindow_release(data->native_window);
         }
@@ -255,6 +258,7 @@ JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_onNativeSurfaceChanged(JN
 /* Surface Destroyed */
 JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_onNativeSurfaceDestroyed(JNIEnv* env, jclass jcls)
 {
+    __android_log_print(ANDROID_LOG_VERBOSE, "SDL", "onNativeSurfaceDestroyed().");
     /* We have to clear the current context and destroy the egl surface here
      * Otherwise there's BAD_NATIVE_WINDOW errors coming from eglCreateWindowSurface on resume
      * Ref: http://stackoverflow.com/questions/8762589/eglcreatewindowsurface-on-ics-and-switching-from-2d-to-3d
@@ -263,6 +267,7 @@ JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_onNativeSurfaceDestroyed(
     SDL_VideoDevice *_this;
     
     if (Android_Window == NULL || Android_Window->driverdata == NULL ) {
+        __android_log_print(ANDROID_LOG_VERBOSE, "SDL", "onNativeSurfaceDestroyed() -- early return for NULL window or NULL driverdata.");        
         return;
     }
     
@@ -270,6 +275,7 @@ JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_onNativeSurfaceDestroyed(
     data = (SDL_WindowData *) Android_Window->driverdata;
     
     if (data->egl_surface != EGL_NO_SURFACE) {
+        __android_log_print(ANDROID_LOG_VERBOSE, "SDL", "onNativeSurfaceChanged() -- destroying window.");
         SDL_EGL_MakeCurrent(_this, NULL, NULL);
         SDL_EGL_DestroySurface(_this, data->egl_surface);
         data->egl_surface = EGL_NO_SURFACE;
@@ -366,7 +372,11 @@ JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_nativePause(
     
         /* *After* sending the relevant events, signal the pause semaphore 
          * so the event loop knows to pause and (optionally) block itself */
-        if (!SDL_SemValue(Android_PauseSem)) SDL_SemPost(Android_PauseSem);
+        if (!SDL_SemValue(Android_PauseSem)) 
+        {
+            __android_log_print(ANDROID_LOG_VERBOSE, "SDL", "nativePause() -- signalling semaphore for Android_Pause");
+            SDL_SemPost(Android_PauseSem);
+        }
     }
 }
 
@@ -381,11 +391,16 @@ JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_nativeResume(
         SDL_SendAppEvent(SDL_APP_DIDENTERFOREGROUND);
         SDL_SendWindowEvent(Android_Window, SDL_WINDOWEVENT_FOCUS_GAINED, 0, 0);
         SDL_SendWindowEvent(Android_Window, SDL_WINDOWEVENT_RESTORED, 0, 0);
+
         /* Signal the resume semaphore so the event loop knows to resume and restore the GL Context
          * We can't restore the GL Context here because it needs to be done on the SDL main thread
          * and this function will be called from the Java thread instead.
          */
-        if (!SDL_SemValue(Android_ResumeSem)) SDL_SemPost(Android_ResumeSem);
+        if (!SDL_SemValue(Android_ResumeSem)) 
+        {
+            __android_log_print(ANDROID_LOG_VERBOSE, "SDL", "nativeResume() -- signalling semaphore for Android_Resume");
+            SDL_SemPost(Android_ResumeSem);
+        }
     }
 }
 
