@@ -62,6 +62,7 @@
 #define HAVE_MATH_H 1
 #define HAVE_ICONV_H 1
 #define HAVE_SIGNAL_H 1
+#undef HAVE_FCITX_FRONTEND_H
 /* C library functions */
 #define HAVE_MALLOC 1
 #define HAVE_CALLOC 1

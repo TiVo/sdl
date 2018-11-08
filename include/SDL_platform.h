@@ -83,9 +83,13 @@
 /* if not compiling for iOS */
 #undef __MACOSX__
 #define __MACOSX__  1
+/* XXX TiVo -- MAC_OS_X_VERSION_MIN_REQUIRED check doesn't seem to work
+   correctly when targeting tvOS */
+#ifndef TARGET_OS_TV
 #if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
 # error SDL for Mac OS X only supports deploying on 10.6 and above.
 #endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
+#endif /* TARGET_OS_TV */
 #endif /* TARGET_OS_IPHONE */
 #endif /* defined(__APPLE__) */
 

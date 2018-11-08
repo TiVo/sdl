@@ -510,7 +510,9 @@ SDL_LoadLaunchImageNamed(NSString *name, int screenh)
     SDL_SendDropComplete(NULL);
 }
 
-#if TARGET_OS_TV
+// XXX TiVo -- doesn't seem to work on TARGET_OS_TV
+// #if TARGET_OS_TV
+#if 0
 /* TODO: Use this on iOS 9+ as well? */
 - (BOOL)application:(UIApplication *)app openURL:(NSURL *)url options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)options
 {
