@@ -32,11 +32,22 @@
 #import "SDL_uikitmodes.h"
 #import "SDL_uikitwindow.h"
 
+typedef NS_ENUM(NSUInteger,  DpadState) {
+    kLeft,
+    kRight,
+    kUp,
+    kDown,
+    kSelect
+};
+
 @implementation SDL_uikitview {
     SDL_Window *sdlwindow;
 
     SDL_TouchID touchId;
     UITouch * __weak firstFingerDown;
+    
+    Boolean microGcNeedsSetup;
+    DpadState dPadState;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -49,6 +60,9 @@
         self.multipleTouchEnabled = YES;
 #endif
 
+        microGcNeedsSetup = true;
+        dPadState = kSelect;
+        
         touchId = 1;
         SDL_AddTouch(touchId, "");
     }
@@ -116,6 +130,7 @@
 {
     CGPoint point = [touch locationInView:self];
 
+    NSLog(@"mouse move %@", [touch debugDescription]);
     if (normalize) {
         CGRect bounds = self.bounds;
         point.x /= bounds.size.width;
@@ -138,11 +153,16 @@
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
-    // TiVo must disable for APPLE devices as inexplicable crashes in
-    // Stage.hx result
-#if (!defined APPLETV)
+    NSUInteger index = 0;
+    
+    if (microGcNeedsSetup) {
+        [self initializeGCGamepad];
+        microGcNeedsSetup = false;
+    }
+    
     for (UITouch *touch in touches) {
         float pressure = [self pressureForTouch:touch];
+        NSLog(@"mouse %lu down %@", (unsigned long)index++, [touch debugDescription]);
 
         if (!firstFingerDown) {
             CGPoint locationInView = [self touchLocation:touch shouldNormalize:NO];
@@ -161,14 +181,10 @@
         SDL_SendTouch(touchId, (SDL_FingerID)((size_t)touch),
                       SDL_TRUE, locationInView.x, locationInView.y, pressure);
     }
-#endif
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
-    // TiVo must disable for APPLE devices as inexplicable crashes in
-    // Stage.hx result
-#if (!defined APPLETV)
     for (UITouch *touch in touches) {
         float pressure = [self pressureForTouch:touch];
 
@@ -183,24 +199,17 @@
         SDL_SendTouch(touchId, (SDL_FingerID)((size_t)touch),
                       SDL_FALSE, locationInView.x, locationInView.y, pressure);
     }
-#endif
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
 {
     // TiVo must disable for APPLE devices as inexplicable crashes in
     // Stage.hx result
-#if (!defined APPLETV)
     [self touchesEnded:touches withEvent:event];
-#endif
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
-    // TiVo must disable for APPLE devices as inexplicable crashes in
-    // Stage.hx result
-#if (!defined APPLETV)
-
     for (UITouch *touch in touches) {
         float pressure = [self pressureForTouch:touch];
 
@@ -215,7 +224,42 @@
         SDL_SendTouchMotion(touchId, (SDL_FingerID)((size_t)touch),
                             locationInView.x, locationInView.y, pressure);
     }
-#endif
+}
+
+- (void) initializeGCGamepad
+{
+    NSArray<GCController *> *controllers = [GCController controllers];
+    GCMicroGamepad *micro = NULL;
+    
+    if (controllers.count > 0) {
+        micro = [[controllers firstObject] microGamepad];
+    }
+    
+    __block SDL_uikitview *myView = self;
+    
+    micro.reportsAbsoluteDpadValues = true;
+    micro.dpad.valueChangedHandler = ^ (GCControllerDirectionPad *pad, float x, float y) {
+        
+        if (fabsf(x) > 0.0 && fabsf(y) > 0.0 && myView != NULL) {
+            float threshold = 0.7;
+            if (fabsf(y) > threshold) {
+                if (y > 0.0) {
+                    myView->dPadState = kUp;
+                } else {
+                    myView->dPadState = kDown;
+                }
+            } else if (fabsf(x) > threshold) {
+                if (x > 0.0) {
+                    myView->dPadState = kRight;
+                } else {
+                    myView->dPadState = kLeft;
+                }
+            } else {
+                myView->dPadState = kSelect;
+            }
+        }
+    };
+
 }
 
 #if TARGET_OS_TV || defined(__IPHONE_9_1)
@@ -244,10 +288,26 @@
     }
 }
 
+- (SDL_Scancode)scancodeFromDpadState
+{
+    switch (dPadState) {
+        case kUp:
+            return SDL_SCANCODE_UP;
+        case kDown:
+            return SDL_SCANCODE_DOWN;
+        case kLeft:
+            return SDL_SCANCODE_LEFT;
+        case kRight:
+            return SDL_SCANCODE_RIGHT;
+        case kSelect:
+            return SDL_SCANCODE_SELECT;
+    }
+}
+
 - (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event
 {
     for (UIPress *press in presses) {
-        SDL_Scancode scancode = [self scancodeFromPressType:press.type];
+        SDL_Scancode scancode = press.type == UIPressTypeSelect ? [self scancodeFromDpadState] : [self scancodeFromPressType:press.type];
         SDL_SendKeyboardKey(SDL_PRESSED, scancode);
     }
 
